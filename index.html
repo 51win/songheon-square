@@ -149,6 +149,10 @@ function texMat(tex, color, rx, ry) {
   const t = tex.clone(); t.repeat.set(rx, ry); t.needsUpdate = true;
   return new THREE.MeshLambertMaterial({ color, map: t });
 }
+function glossMat(tex, color, rx, ry) {   // 조명이 비치는 매끈한 바닥
+  const t = tex.clone(); t.repeat.set(rx, ry); t.needsUpdate = true;
+  return new THREE.MeshPhongMaterial({ color, map: t, shininess: 90, specular: 0x555a66 });
+}
 function plane(w, h, tex, x, y, z, ry = 0, extra = {}) {
   const m = add(new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex, transparent: true, ...extra })), x, y, z);
   m.rotation.y = ry;
@@ -222,7 +226,7 @@ bx(-5.5, EL.xa, 0, 4.4, EL.back, EZ0, C.ground1);
 bx(EL.xb, X0, 0, 4.4, EL.back, EZ0, C.ground1);
 bx(EL.xa, EL.xb, EL.y1 + 0.1, 4.4, EL.back, EZ0, C.ground1);
 bx(EL.xa, EL.xb, 0, LY - 0.1, EL.back, EZ0, C.ground1, false);
-for (const [z0, z1] of [[-6, -9], [-11, -14.5], [-29, -33], [-36, -41]]) bx(-5.5, -5.35, 0.6, 3.6, z0, z1, 0, true, glow(0x3b2620));
+for (const [z0, z1] of [[-6, -9], [-11, -14.5], [-29, -33], [-36, -41]]) bx(-5.5, -5.35, 0.6, 3.6, z0, z1, 0, true, glow(0x1d2740));
 
 function louvers(offset, step, y0, y1, m, depth, phase = 0) {
   const pts = [], r = R + offset, cx = X1 - R, cz = Z0 - R;
@@ -257,9 +261,23 @@ function drawSign() {
 plane(3.4, 0.85, signTex, -5.48, 3.2, -15.4, Math.PI / 2, { opacity: 0.85 });
 
 // 로비 유리문 + 자판기
-bx(-9.08, -9, LY, 4.4, -20.2, -26.3, 0, true, glow(0x2e2224));
+bx(-9.08, -9, LY, 4.4, -20.2, -26.3, 0, true, glow(0x625d60));
 for (let z = -21.2; z > -26.3; z -= 1) bx(-8.99, -8.95, LY, 4.4, z, z - 0.06, C.steel, false);
-bx(-8.9, -8.2, LY, 3.1, -25.5, -26.35, 0, false, glow(0x2f6a4a));
+bx(-8.9, -8.2, LY, 3.1, -25.5, -26.35, 0x1f6a44);                         // 자판기
+bx(-8.2, -8.18, LY + 0.95, LY + 1.8, -25.58, -26.27, 0, false, glow(0xb9c9c4));
+bx(-8.2, -8.18, LY + 0.35, LY + 0.8, -25.6, -26.0, 0, false, glow(0x3f9a6a));
+bx(-5.5, -5.8, LY, LY + 0.012, -20.4, -26.4, 0x8a6c1e, false);              // 점자블록
+// 경사로 (건물 앞을 따라 올라와 계단 옆으로 이어짐) + 난간
+{ const rz0 = -9, rz1 = -19.3, len = Math.hypot(rz0 - rz1, LY), ang = Math.atan2(LY, rz0 - rz1), zc = (rz0 + rz1) / 2;
+  const ramp = bx(-5.02, -4.1, -0.05, 0.05, -len / 2, len / 2, 0x8f8892);
+  ramp.position.set(-4.56, LY / 2 - 0.05, zc); ramp.rotation.x = ang;
+  bx(-5.02, -4.1, 0, LY, rz1, -20.13, 0x8f8892);
+  for (const x of [-5.02, -4.14]) {
+    for (let z = rz0; z >= rz1 - 0.8; z -= 0.86) { const h = Math.min(LY, LY * (rz0 - z) / (rz0 - rz1)); bx(x, x + 0.04, h, h + 1.0, z, z - 0.04, C.steel, false); }
+    const r = bx(x, x + 0.04, -0.02, 0.02, -len / 2, len / 2, C.steel, false);
+    r.position.set(x + 0.02, LY / 2 + 1.0, zc); r.rotation.x = ang;
+    bx(x, x + 0.04, LY + 0.98, LY + 1.02, rz1, -20.13, C.steel, false);
+  } }
 add(new THREE.PointLight(C.warm, 2, 6, 1.5), -8, 3.6, -23.5);
 
 // 1층 엘리베이터 (계단 올라와 왼쪽 벽)
@@ -385,7 +403,7 @@ add(new THREE.PointLight(0xeef2ff, 6, 5, 1.2), 0, 2.2, 0.2);
 
 // --- 3층 로비 (검은 천장 + 흰 간접조명 테두리, 키오스크, 게시판) ---
 // 엘리베이터에서 내리면 정면이 키오스크 벽, 왼쪽으로 돌면 끝 벽(계단·회색문·화장실), 거기서 오른쪽으로 복도
-bx(-7, 3, -0.05, 0, -1, -7, 0, false, texMat(tileTex, 0x8d8f96, 10, 6));
+bx(-7, 3, -0.05, 0, -1, -7, 0, false, glossMat(tileTex, 0x8d8f96, 10, 6));
 bx(-7, 3, 3.2, 3.3, -1, -7, 0x0b0b0e, false);
 bx(-7, 3, 2.75, 2.9, -1, -2.2, 0xe9e9ea); bx(-7, 3, 2.75, 2.9, -5.8, -7, 0xe9e9ea);
 bx(-7, -5.8, 2.75, 2.9, -2.2, -5.8, 0xe9e9ea); bx(1.8, 3, 2.75, 2.9, -2.2, -5.8, 0xe9e9ea);
@@ -436,7 +454,7 @@ add(new THREE.PointLight(0xdfe9ff, 4, 10, 1.5), -2, 2.6, -4);
 const wing = new THREE.Group(); wing.rotation.y = -Math.PI / 2; wing.position.set(-9.9, 0, -2); inside.add(wing); root = wing;
 const W = (x, y, z) => { wing.updateMatrixWorld(true); return wing.localToWorld(V(x, y, z)); };
 const CX0 = -5, CX1 = -38, CN = -2.9, CS = -5.1, CH = 2.75, D5 = -30;   // D5 = 305호 문 x
-bx(CX1, CX0, -0.05, 0, CN, CS, 0, false, texMat(tileTex, 0x80838c, 22, 2));
+bx(CX1, CX0, -0.05, 0, CN, CS, 0, false, glossMat(tileTex, 0x80838c, 22, 2));
 bx(CX1, CX0, 3.4, 3.5, CN, CS, 0x08080a, false);
 const S5 = -21;                       // 305호: 복도 들어가서 오른쪽 4번째 문
 bx(CX1, CX0, 0, CH, CN, CN - 0.08, WALL);
@@ -596,6 +614,7 @@ function limb(parent, x, y, r, len, color, rz, rx) {
 }
 const textTex = (txt, col) => canvasTex(256, 64, (g) => { g.fillStyle = col; g.font = '900 34px serif'; g.textAlign = 'center'; g.fillText(txt, 128, 44); });
 const people = [];
+const SHADOW = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.22, depthWrite: false });
 function person(o) {
   const g = new THREE.Group(), w = o.wide ?? 1, hip = o.seated ? 0.5 : 0.86;
   [-1, 1].forEach(s => {
@@ -623,6 +642,9 @@ function person(o) {
   }
   if (o.text) { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.06), new THREE.MeshBasicMaterial({ map: textTex(o.text, o.textColor), transparent: true })); p.position.set(0, hip + 0.52, 0.118); g.add(p); }
   if (o.guitar) { const gt = guitar(o.guitar, o.kind); gt.position.set(0.02, hip + 0.28, 0.16); gt.rotation.z = -0.95; g.add(gt); }
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(0.36 * w, 20), SHADOW); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.006; g.add(sh);
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.006, 6, 12, Math.PI), mat(0x7a2a2a));
+  smile.rotation.z = Math.PI; smile.position.set(0, hip + 0.86, 0.107); g.add(smile);
   g.scale.setScalar(o.h ?? 1);
   g.position.set(o.x, 0, o.z); g.rotation.y = Math.PI + (o.turn ?? 0);
   root.add(g); people.push(g);
@@ -702,6 +724,8 @@ function place(p) {
     roomHemi.intensity = roomLvl * 2.4;
     inFog.far = 24 + roomLvl * 300;
   }
+  const wk = out ? lin(T.walk, p) : lin(T.walk2, p);           // 걸을 때 살짝 흔들림
+  pos.y += Math.sin(p * 900) * 0.018 * Math.min(1, wk * 20, (1 - wk) * 20);
   camera.position.copy(pos);
   camera.lookAt(look);
   camera.rotateY(-mouse.x * 0.07);
@@ -733,7 +757,7 @@ addEventListener('keydown', e => {
 // ---------- UI ----------
 const panels = [...document.querySelectorAll('.panel')].map(el => ({ el, r: el.dataset.range.split(',').map(Number) }));
 const $ = id => document.getElementById(id);
-const hint = $('hint'), bar = $('bar'), black = $('black'), flash = $('flash'), vignette = $('vignette');
+const hint = $('hint'), bar = $('bar'), black = $('black'), flash = $('flash'), vignette = $('vignette'), cool = $('cool');
 
 addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
@@ -777,6 +801,7 @@ renderer.setAnimationLoop(() => {
   black.style.opacity = Math.min(smooth([0.36, 0.39], prog), 1 - smooth([0.43, 0.46], prog));
   flash.style.opacity = smooth([0.85, 0.88], prog) * (1 - smooth([0.88, 0.94], prog)) * 0.9;
   vignette.style.opacity = 1 - roomLvl * 0.6;
+  cool.style.opacity = outside.visible ? 0.22 : 0.12 - roomLvl * 0.1;   // 바깥은 차갑게, 방 안은 중성 흰빛
   composer.render();
 });
 </script>
