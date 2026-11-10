@@ -638,63 +638,6 @@ for (const [x, z, ry] of [[-35.2, -1.4, 0.4], [-34.4, -0.4, -0.3], [-35.8, 0.3, 
 bx(-25.9, -25.2, 0, 0.42, -1.9, -1.6, 0x141416);
 bx(-25.7, -25.4, 0.2, 0.26, -1.91, -1.92, 0, false, glow(0xb0202c));
 
-// 사람들 (사진 속 멤버들: 옷, 머리, 체격, 악기, 포즈를 닮게)
-const cap = (r, len) => new THREE.CapsuleGeometry(r, len, 4, 10);
-function limb(parent, x, y, r, len, color, rz, rx) {
-  const pivot = new THREE.Group(); pivot.position.set(x, y, 0); pivot.rotation.set(rx, 0, rz); parent.add(pivot);
-  const m = new THREE.Mesh(cap(r, len), mat(color)); m.position.y = -(len / 2 + r); pivot.add(m);
-  return pivot;
-}
-const textTex = (txt, col) => canvasTex(256, 64, (g) => { g.fillStyle = col; g.font = '900 34px serif'; g.textAlign = 'center'; g.fillText(txt, 128, 44); });
-const people = [];
-const SHADOW = new THREE.MeshBasicMaterial({ color: 0x000000, map: DOT, transparent: true, opacity: 0.55, depthWrite: false });
-function person(o) {
-  const g = new THREE.Group(), w = o.wide ?? 1, hip = o.seated ? 0.5 : 0.86;
-  [-1, 1].forEach(s => {
-    const leg = limb(g, s * 0.09 * w, hip, 0.075 * (o.legW ?? 1) * w, 0.62, o.pants, s * (o.spread ?? 0.04), o.seated ? -1.45 : 0);
-    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.11 * w, 0.07, 0.22), mat(o.shoes)); shoe.position.set(0, -0.83, 0.05); leg.add(shoe);
-  });
-  const torso = new THREE.Mesh(cap(0.17 * w, 0.32), mat(o.top)); torso.position.y = hip + 0.36; torso.scale.z = 0.65; g.add(torso);
-  [-1, 1].forEach((s, i) => {
-    const [rz, rx] = o.arms[i];
-    const arm = limb(g, s * 0.22 * w, hip + 0.6, 0.05 * w, 0.2, o.top, s * rz, rx);
-    const fore = new THREE.Mesh(cap(0.045 * w, 0.2), mat(o.longSleeve ? o.top : o.skin)); fore.position.y = -0.42; arm.add(fore);
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.05 * w, 10, 8), mat(o.skin)); hand.position.y = -0.58; arm.add(hand);
-  });
-  const neck = new THREE.Mesh(cyl(0.05, 0.05, 0.1, o.skin).geometry, mat(o.skin)); neck.position.y = hip + 0.73; g.add(neck);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 18, 14), mat(o.skin)); head.position.y = hip + 0.87; head.scale.y = 1.08; g.add(head);
-  for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.013, 6, 6), mat(0x111111)); e.position.set(s * 0.04, hip + 0.885, 0.105); g.add(e); }
-  const hairMat = mat(o.hair), th = { bob: 0.62, long: 0.6, short: 0.5, shaved: 0.42 }[o.hairType] * Math.PI;
-  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.127, 18, 12, 0, Math.PI * 2, 0, th), hairMat);
-  hairCap.position.copy(head.position); hairCap.rotation.x = o.hairType === 'shaved' ? -0.2 : -0.45; g.add(hairCap);
-  if (o.hairType === 'bob' || o.hairType === 'long') {
-    const len = o.hairType === 'bob' ? 0.17 : 0.42;
-    const back = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, len, 18, 1, true, 0.95, Math.PI * 2 - 1.9),
-      new THREE.MeshLambertMaterial({ color: o.hair, side: THREE.DoubleSide }));
-    back.position.set(0, hip + 0.86 - len / 2 + 0.06, -0.01); g.add(back);
-  }
-  if (o.text) { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.06), new THREE.MeshBasicMaterial({ map: textTex(o.text, o.textColor), transparent: true })); p.position.set(0, hip + 0.52, 0.118); g.add(p); }
-  if (o.guitar) { const gt = guitar(o.guitar, o.kind); gt.position.set(0.02, hip + 0.28, 0.16); gt.rotation.z = -0.95; g.add(gt); }
-  const sh = new THREE.Mesh(new THREE.CircleGeometry(0.6 * w, 20), SHADOW); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.006; g.add(sh);
-  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.006, 6, 12, Math.PI), mat(0x7a2a2a));
-  smile.rotation.z = Math.PI; smile.position.set(0, hip + 0.86, 0.107); g.add(smile);
-  g.scale.setScalar(o.h ?? 1);
-  g.position.set(o.x, 0, o.z); g.rotation.y = Math.PI + (o.turn ?? 0);
-  root.add(g); people.push(g);
-  return g;
-}
-const HOLD = [[0.35, -1.1], [0.15, -0.7]];    // 기타 잡는 팔 (왼손=넥, 오른손=스트럼)
-person({ x: -25.9, z: 5.1, seated: true, skin: 0xe8c4a8, hair: 0x15110f, hairType: 'long', top: 0x151517, pants: 0x1a1a1e, shoes: 0x222222,
-  arms: [[0.35, -1.9], [0.35, -1.9]], h: 0.95 });                                                   // 드럼
-person({ x: -28.2, z: 3.0, skin: 0xf0cdb2, hair: 0x2a1a12, hairType: 'bob', top: 0x1b1b1f, longSleeve: true, pants: 0x4b1a1e, shoes: 0xe8e4dc,
-  arms: [HOLD[0], [0.4, -2.3]], guitar: 0x9cc46a, kind: 'strat', text: 'NEVER SAY', textColor: '#e8dcc0', h: 0.97, turn: 0.15 });  // 초록 기타
-person({ x: -29.1, z: 4.7, skin: 0xeac6a8, hair: 0x141212, hairType: 'short', top: 0xeeeae4, longSleeve: true, pants: 0x2a2a30, shoes: 0xdddddd,
-  arms: [[2.5, -0.2], [2.5, -0.2]], text: 'UNIVERSITY', textColor: '#222', h: 0.96 });            // 만세
-person({ x: -30.5, z: 4.9, skin: 0xedc8aa, hair: 0x1a1412, hairType: 'long', top: 0x18181b, longSleeve: true, pants: 0x9db3cf, shoes: 0xe0e0e0,
-  arms: [HOLD[0], [0.5, -2.2]], guitar: 0x1d6fb8, kind: 'bass', h: 0.95 });                          // 베이스
-person({ x: -31.3, z: 3.4, skin: 0xd9a988, hair: 0x2c2826, hairType: 'shaved', top: 0x111113, pants: 0x0f0f11, shoes: 0x111111,
-  arms: [[1.9, -0.5], [1.9, -0.5]], guitar: 0x6e0d18, kind: 'semi', wide: 1.3, legW: 1.4, spread: 0.32, h: 1.08, turn: -0.1 }); // 빨간 기타
-people.forEach(p => (p.userData.y = p.position.y));
 
 // 방 조명 (문이 열릴 때 켜진다)
 const roomLights = [[-34, 0.6], [-27, 0.6], [-34, 4.8], [-27, 4.8]].map(([x, z]) => add(new THREE.PointLight(0xffffff, 0, 10, 1.2), x, 2.6, z));
@@ -823,8 +766,6 @@ renderer.setAnimationLoop(() => {
       snowPos[i * 3 + 2] += Math.cos(t * 0.6 + i * 0.7) * dt * 0.15;
     }
     snowGeo.attributes.position.needsUpdate = true;
-  } else if (roomLvl > 0) {
-    people.forEach((p, i) => { p.position.y = p.userData.y + Math.abs(Math.sin(t * 3.2 + i * 1.3)) * 0.035; p.rotation.z = Math.sin(t * 1.6 + i) * 0.03; });
   }
 
   bloom.strength = outside.visible ? 0.4 : 0.55 - roomLvl * 0.45;
