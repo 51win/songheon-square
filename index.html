@@ -300,8 +300,6 @@ for (let i = 0; i < 14; i++) { const w = 8 + rnd() * 12; farBuilding(-60 + rnd()
 // 밤하늘: 달, 별, 떠다니는 도형, 빛 먼지
 const moon = add(new THREE.Mesh(new THREE.CircleGeometry(16, 64), new THREE.MeshBasicMaterial({ color: 0xd8d2d0, fog: false })), 70, 75, -170);
 moon.lookAt(0, 0, 0);
-const halo = add(new THREE.Mesh(new THREE.RingGeometry(24, 25.2, 96), new THREE.MeshBasicMaterial({ color: 0xc2394f, fog: false, transparent: true, opacity: 0.7 })));
-halo.position.copy(moon.position); halo.quaternion.copy(moon.quaternion);
 function starLayer(n, size) {
   const p = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
